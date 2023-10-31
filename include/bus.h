@@ -27,3 +27,6 @@ public:
      */
     void write(uint16_t addr, uint8_t data);
 };
+
+
+// TODO: Implement other address bit sizes

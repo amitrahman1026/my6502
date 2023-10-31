@@ -1,5 +1,6 @@
 #pragma once
 
+#include <_types/_uint8_t.h>
 #include <array>
 #include <cstdint>
 #include <string>
@@ -11,7 +12,7 @@ class Bus_16bit;
 
 class Cpu6502 {
 public:
-    Cpu6502() = default;
+    Cpu6502();
     ~Cpu6502() = default;
 
     /**
@@ -58,11 +59,13 @@ public:
      * */
     struct Instruction6502 {
         std::string opcode;
-        uint8_t (*address_mode)(void);
-        uint8_t (*instruction_type)(void);
+        uint8_t (Cpu6502::*address_mode)();
+        uint8_t (Cpu6502::*instruction_type)();
+        uint8_t cycles = 0;
     };
 
     std::array<Instruction6502, 0x100> opcodeTable;
+
     // Instructions types
     uint8_t ADC(); // Add Memory to Accumulator with Carry
     uint8_t AND(); // AND Memory with Accumulator
@@ -133,6 +136,8 @@ public:
     uint8_t TXA(); // Transfer Stack Pointer to Accumulator
     uint8_t TXS(); // Transfer Index X to Stack Register
     uint8_t TYA(); // Transfer Index Y to Accumulator
+
+    uint8_t XXX(); // Illegal opcode will be captured in this
 
     // Address modes
     uint8_t ACC(); // Accumulator
