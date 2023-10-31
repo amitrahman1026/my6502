@@ -62,4 +62,6 @@ _deps
 *.vb
 *.wsf
 
+.cache/
+
 # End of https://www.toptal.com/developers/gitignore/api/cmake,c++,executable
