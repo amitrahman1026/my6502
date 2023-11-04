@@ -1,9 +1,9 @@
 #pragma once
 
-#include <_types/_uint8_t.h>
 #include <array>
 #include <cstdint>
 #include <string>
+#include <memory>
 
 // Forward declarations of all components of 6502 processor to prevent circular
 // dependencies
@@ -26,9 +26,20 @@ public:
     uint16_t pc = 0x0000; // Program Counter
 
     /**
+     * @brief Emulation variables
+     * */
+    uint8_t cycles = 0x00; // Numbers of clock cycles left
+    uint8_t opcode = 0x00; // Instruction byte
+    uint16_t addr_abs = 0x0000;
+    uint16_t addr_rel = 0x0000;
+    uint16_t addr_lo = 0x0000;
+    uint16_t addr_hi = 0x0000;
+    uint8_t decoded = 0x00;
+
+    /**
      * @brief Masks for manipulating 6502 flag register
      * */
-    enum class Flags6502 : uint8_t {
+    enum Flags6502 {
         C = 1 << 0, // Carry Bit
         Z = 1 << 1, // Zero
         I = 1 << 2, // Disable Interrupts
@@ -38,6 +49,12 @@ public:
         V = 1 << 6, // Overflow
         N = 1 << 7  // Negative
     };
+
+    uint8_t getFlag(Flags6502 f);
+
+    void setFlag(Flags6502 f);
+
+    void clearFlag(Flags6502 f);
 
     /**
      * @brief Events and interrupts
@@ -51,7 +68,12 @@ public:
     /**
      * @brief 16 Bit address but and utilities
      * */
-    Bus_16bit *bus = nullptr;
+    std::shared_ptr<Bus_16bit> bus;
+    void connectBus(std::shared_ptr<Bus_16bit> b);
+
+
+    uint8_t read(uint16_t addr);
+    void write(uint16_t addr, uint8_t data);
 
     /**
      * @brief Instructions,lookup table, addressing modes, opcodes
@@ -155,7 +177,4 @@ public:
     uint8_t ZPY(); // Zeropage, Y-Indexed
 
 private:
-    /**
-     * @brief
-     * */
 };

@@ -1,6 +1,8 @@
 #pragma once
 
 #include "cpu.h"
+#include <array>
+#include <memory>
 
 /**
  * @brief Implementation of a 16-bit address bus.
@@ -8,8 +10,8 @@
 
 class Bus_16bit {
 public:
-    Bus_16bit() = default;
-    ~Bus_16bit() = default;
+    Bus_16bit();
+    ~Bus_16bit();
 
     /**
      * @brief Read a byte from the specified memory address
@@ -26,7 +28,11 @@ public:
      * @param data The data to write
      */
     void write(uint16_t addr, uint8_t data);
+
+    void connectCpu(std::shared_ptr<Cpu6502> c);
+
+private:
+    std::shared_ptr<Cpu6502> cpu;
+
+    std::array<uint8_t, 0x10000> memory = {};
 };
-
-
-// TODO: Implement other address bit sizes

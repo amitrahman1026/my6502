@@ -1,10 +1,12 @@
+#include "bus.h"
 #include "cpu.h"
+#include <memory>
 
 Cpu6502::Cpu6502() {
     using In = Instruction6502;
     using C = Cpu6502;
     opcodeTable =
-    // clang-format off
+        // clang-format off
 {
 /*              0                                1                                2                                3                                4                                5                                6                                7                                8                                9                                A                                B                                C                                D                                E                                F                             */
 /*0x0*/         In{"BRK", &C::BRK, &C::IMP, 7 }, In{"ORA", &C::ORA, &C::IZX, 6 }, In{"???", &C::XXX, &C::IMP, 2 }, In{"???", &C::XXX, &C::IMP, 8 }, In{"???", &C::XXX, &C::IMP, 3 }, In{"ORA", &C::ORA, &C::ZP0, 3 }, In{"ASL", &C::ASL, &C::ZP0, 5 }, In{"???", &C::XXX, &C::IMP, 5 }, In{"PHP", &C::PHP, &C::IMP, 3 }, In{"ORA", &C::ORA, &C::IMM, 2 }, In{"ASL", &C::ASL, &C::ACC, 2 }, In{"???", &C::XXX, &C::IMP, 2 }, In{"???", &C::XXX, &C::IMP, 4 }, In{"ORA", &C::ORA, &C::ABS, 4 }, In{"ASL", &C::ASL, &C::ABS, 6 }, In{"???", &C::XXX, &C::IMP, 6 },
@@ -40,6 +42,28 @@ Cpu6502::Cpu6502() {
 /*0xF*/         In{"BEQ", &C::BEQ, &C::REL, 2 }, In{"SBC", &C::SBC, &C::IZY, 5 }, In{"???", &C::XXX, &C::IMP, 2 }, In{"???", &C::XXX, &C::IMP, 8 }, In{"???", &C::XXX, &C::IMP, 4 }, In{"SBC", &C::SBC, &C::ZPX, 4 }, In{"INC", &C::INC, &C::ZPX, 6 }, In{"???", &C::XXX, &C::IMP, 6 }, In{"SED", &C::SED, &C::IMP, 2 }, In{"SBC", &C::SBC, &C::ABY, 4 }, In{"NOP", &C::XXX, &C::IMP, 2 }, In{"???", &C::XXX, &C::IMP, 7 }, In{"???", &C::XXX, &C::IMP, 4 }, In{"SBC", &C::SBC, &C::ABX, 4 }, In{"INC", &C::INC, &C::ABX, 7 }, In{"???", &C::XXX, &C::IMP, 7 }
 
 };
-// clang-format on
+    // clang-format on
     reset();
 };
+
+void Cpu6502::connectBus(std::shared_ptr<Bus_16bit> b) {
+    bus = b;
+}
+
+uint8_t Cpu6502::getFlag(Cpu6502::Flags6502 f) { return sr & f; }
+
+void Cpu6502::setFlag(Cpu6502::Flags6502 f) { sr |= f; }
+
+void Cpu6502::clearFlag(Cpu6502::Flags6502 f) { sr &= ~f; }
+
+uint8_t Cpu6502::read(uint16_t addr) { return bus->read(addr); }
+
+void Cpu6502::write(uint16_t addr, uint8_t data) {
+    return bus->write(addr, data);
+}
+
+void Cpu6502::reset() {
+    addr_abs = 0xFFFC;
+    addr_lo = read(addr_abs);
+    addr_hi = read(addr_abs + 1);
+}
