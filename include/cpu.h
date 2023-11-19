@@ -22,7 +22,7 @@ public:
     uint8_t x = 0x00;     // X Register
     uint8_t y = 0x00;     // Y Register
     uint8_t sr = 0x00;    // Status Register
-    uint16_t sp = 0x0000; // Stack Pointer
+    uint8_t sp = 0x00; // Stack Pointer
     uint16_t pc = 0x0000; // Program Counter
 
     /**

@@ -46,9 +46,7 @@ Cpu6502::Cpu6502() {
     reset();
 };
 
-void Cpu6502::connectBus(std::shared_ptr<Bus_16bit> b) {
-    bus = b;
-}
+void Cpu6502::connectBus(std::shared_ptr<Bus_16bit> b) { bus = b; }
 
 uint8_t Cpu6502::getFlag(Cpu6502::Flags6502 f) { return sr & f; }
 
@@ -66,4 +64,98 @@ void Cpu6502::reset() {
     addr_abs = 0xFFFC;
     addr_lo = read(addr_abs);
     addr_hi = read(addr_abs + 1);
+
+    // clear registers, set program counter to 0xFFFC, stack pointer to 0xFD
+    a = 0;
+    x = 0;
+    y = 0;
+    sr = 0x00;
+    sp = 0xFD;
+    pc = (addr_hi << 8) | addr_lo;
+
+    setFlag(U);
+
+    cycles = 8;
+    opcode = 0x00;
+    addr_abs = 0x0000;
+    addr_rel = 0x0000;
+    addr_lo = 0x0000;
+    addr_hi = 0x0000;
+    decoded = 0x00;
+}
+
+void Cpu6502::irq() {
+    if (!getFlag(I)) { // Interrupt disable bit check
+
+        write(0x100 + sp, (pc >> 8) & 0x00FF);
+        sp--;
+        write(0x100 + sp, pc & 0x00FF);
+        sp--;
+
+        // push status register to stack
+        clearFlag(B);
+        setFlag(U);
+        setFlag(I);
+        write(0x100 + sp, sr);
+        sp--;
+
+        // read new program counter
+        addr_abs = 0xFFFE;
+        addr_lo = read(addr_abs);
+        addr_hi = read(addr_abs + 1);
+        pc = (addr_hi << 8) | addr_lo;
+
+        cycles = 7;
+    }
+}
+
+void Cpu6502::nmi() {
+    write(0x100 + sp, (pc >> 8) & 0x00FF);
+    sp--;
+    write(0x100 + sp, pc & 0x00FF);
+    sp--;
+
+    // push status register to stack
+    clearFlag(B);
+    setFlag(U);
+    setFlag(I);
+    write(0x100 + sp, sr);
+    sp--;
+
+    // read new program counter
+    addr_abs = 0xFFFA;
+    addr_lo = read(addr_abs);
+    addr_hi = read(addr_abs + 1);
+    pc = (addr_hi << 8) | addr_lo;
+
+    cycles = 8;
+}
+
+/**
+ * @brief Executes a single clock cycle in the 6502 CPU emulation.
+ *
+ * Each instruction requires a variable number of clock cycles to execute. In
+ * behavioral emulation, calculations are performed instantly, and the clock
+ * cycles are separately delayed to emulate the execution time. This delay is
+ * implemented by counting down the cycles required by the instruction.
+ * When the cycle count reaches 0, the instruction is complete, and the next one
+ * is ready to be executed.
+ */
+void Cpu6502::clock() {
+    // If the cycles have expired, fetch the next instruction.
+    if (cycles == 0) {
+        // Read instruction byte
+        opcode = read(pc);
+        // Set ununsed flag
+        setFlag(U);
+
+        cycles = opcodeTable[opcode].cycles;
+        uint8_t additional_cycles_addr =
+            (this->*opcodeTable[opcode].address_mode)();
+        uint8_t additional_cycles2_inst =
+            (this->*opcodeTable[opcode].instruction_type)();
+
+        cycles += (additional_cycles_addr & additional_cycles2_inst);
+    }
+    cycles--;
 }
