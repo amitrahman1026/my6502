@@ -11,3 +11,6 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 # Add the subdirectories (e.g., src)
 add_subdirectory(src)
+
+# Make sure the include directory is available globally
+include_directories(include)
