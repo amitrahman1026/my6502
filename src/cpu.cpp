@@ -81,7 +81,7 @@ void Cpu6502::reset() {
     addr_rel = 0x0000;
     addr_lo = 0x0000;
     addr_hi = 0x0000;
-    decoded = 0x00;
+    operand = 0x00;
 }
 
 void Cpu6502::irq() {

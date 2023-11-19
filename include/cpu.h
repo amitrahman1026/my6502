@@ -1,9 +1,8 @@
 #pragma once
-
 #include <array>
 #include <cstdint>
-#include <string>
 #include <memory>
+#include <string>
 
 // Forward declarations of all components of 6502 processor to prevent circular
 // dependencies
@@ -22,7 +21,7 @@ public:
     uint8_t x = 0x00;     // X Register
     uint8_t y = 0x00;     // Y Register
     uint8_t sr = 0x00;    // Status Register
-    uint8_t sp = 0x00; // Stack Pointer
+    uint8_t sp = 0x00;    // Stack Pointer
     uint16_t pc = 0x0000; // Program Counter
 
     /**
@@ -34,7 +33,7 @@ public:
     uint16_t addr_rel = 0x0000;
     uint16_t addr_lo = 0x0000;
     uint16_t addr_hi = 0x0000;
-    uint8_t decoded = 0x00;
+    uint8_t operand = 0x00;
 
     /**
      * @brief Masks for manipulating 6502 flag register
@@ -63,14 +62,12 @@ public:
     void clock(); // Update by one clock cycle
     void irq();   // Interrupt request
     void nmi();   // Non-maskable interrupt
-    void ret();   // instruction is complete
 
     /**
      * @brief 16 Bit address but and utilities
      * */
     std::shared_ptr<Bus_16bit> bus;
     void connectBus(std::shared_ptr<Bus_16bit> b);
-
 
     uint8_t read(uint16_t addr);
     void write(uint16_t addr, uint8_t data);
@@ -87,6 +84,23 @@ public:
     };
 
     std::array<Instruction6502, 0x100> opcodeTable;
+
+    uint8_t fetch(); // Fetch operand based on addressing mode
+    
+    // Address modes
+    uint8_t ACC(); // Accumulator
+    uint8_t ABS(); // Absolute
+    uint8_t ABX(); // Absolute, X-Indexed
+    uint8_t ABY(); // Absolute, Y-Indexed
+    uint8_t IMM(); // Immediate
+    uint8_t IMP(); // Implied
+    uint8_t IND(); // Indirect
+    uint8_t IZX(); // X-Indexed, Indirect
+    uint8_t IZY(); // Indirect, Y-Indexed
+    uint8_t REL(); // Relative
+    uint8_t ZP0(); // Zeropage
+    uint8_t ZPX(); // Zeropage, X-Indexed
+    uint8_t ZPY(); // Zeropage, Y-Indexed
 
     // Instructions types
     uint8_t ADC(); // Add Memory to Accumulator with Carry
@@ -160,21 +174,4 @@ public:
     uint8_t TYA(); // Transfer Index Y to Accumulator
 
     uint8_t XXX(); // Illegal opcode will be captured in this
-
-    // Address modes
-    uint8_t ACC(); // Accumulator
-    uint8_t ABS(); // Absolute
-    uint8_t ABX(); // Absolute, X-Indexed
-    uint8_t ABY(); // Absolute, Y-Indexed
-    uint8_t IMM(); // Immediate
-    uint8_t IMP(); // Implied
-    uint8_t IND(); // Indirect
-    uint8_t IZX(); // X-Indexed, Indirect
-    uint8_t IZY(); // Indirect, Y-Indexed
-    uint8_t REL(); // Relative
-    uint8_t ZP0(); // Zeropage
-    uint8_t ZPX(); // Zeropage, X-Indexed
-    uint8_t ZPY(); // Zeropage, Y-Indexed
-
-private:
 };
