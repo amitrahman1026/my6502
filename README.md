@@ -7,6 +7,10 @@ MOS 6502 CPU library emulator
 - Accurate Instrucitons Implementation
 - Memory Bus
  
+## TODO
+
+ - CPU Monitor
+ - Instruction Testing
 
 ## Dependencies
 
