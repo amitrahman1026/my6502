@@ -1,4 +1,5 @@
 #include "cpu.h"
+#include <cstdint>
 #include "instructions.h"
 
 InstructionFactory::InstructionFactory(std::shared_ptr<Cpu6502> c) { cpu = c; }
@@ -140,18 +141,30 @@ uint8_t Cpu6502::ZPY() {
 }
 
 // Instructions functions
+/*
+    enum class Flags6502 {
+        C = 1 << 0, // Carry Bit
+        Z = 1 << 1, // Zero
+        I = 1 << 2, // Disable Interrupts
+        D = 1 << 3, // Decimal Mode
+        B = 1 << 4, // Break
+        U = 1 << 5, // Unused
+        V = 1 << 6, // Overflow
+        N = 1 << 7  // Negative
+    };
+ * */
 
 // Add Memory to Accumulator with Carry
 uint8_t Cpu6502::ADC() {
     fetch();
-    uint16_t temp = (uint16_t)a + (uint16_t)operand + (uint16_t)getFlag(C);
-    (temp > 255) ? setFlag(C) : clearFlag(C);
-    (temp & 0x00FF) == 0 ? setFlag(Z) : clearFlag(Z);
+    uint16_t temp = (uint16_t)a + (uint16_t)operand + (uint16_t)getFlag(Flags6502::C);
+    (temp > 255) ? setFlag(Flags6502::C) : clearFlag(Flags6502::C);
+    (temp & 0x00FF) == 0 ? setFlag(Flags6502::Z) : clearFlag(Flags6502::Z);
     ((~((uint16_t)a ^ (uint16_t)operand) & ((uint16_t)a ^ (uint16_t)temp)) &
      0x0080)
-        ? setFlag(V)
-        : clearFlag(V);
-    (temp & 0x80) ? setFlag(N) : clearFlag(N);
+        ? setFlag(Flags6502::V)
+        : clearFlag(Flags6502::V);
+    (temp & 0x80) ? setFlag(Flags6502::N) : clearFlag(Flags6502::N);
     a = temp & 0x00FF;
     return 1;
 }
@@ -160,8 +173,8 @@ uint8_t Cpu6502::ADC() {
 uint8_t Cpu6502::AND() {
     fetch();
     a &= operand;
-    a == 0x00 ? setFlag(Z) : clearFlag(Z);
-    a & 0x80 ? setFlag(N) : clearFlag(N);
+    a == 0x00 ? setFlag(Flags6502::Z) : clearFlag(Flags6502::Z);
+    a & 0x80 ? setFlag(Flags6502::N) : clearFlag(Flags6502::N);
     return 1;
 }
 
@@ -169,9 +182,9 @@ uint8_t Cpu6502::AND() {
 uint8_t Cpu6502::ASL() {
     fetch();
     uint16_t temp = (uint16_t)operand << 1;
-    (temp & 0xFF00) > 0 ? setFlag(C) : clearFlag(C);
-    (temp & 0x00FF) == 0 ? setFlag(Z) : clearFlag(Z);
-    (temp & 0x80) ? setFlag(N) : clearFlag(N);
+    (temp & 0xFF00) > 0 ? setFlag(Flags6502::C) : clearFlag(Flags6502::C);
+    (temp & 0x00FF) == 0 ? setFlag(Flags6502::Z) : clearFlag(Flags6502::Z);
+    (temp & 0x80) ? setFlag(Flags6502::N) : clearFlag(Flags6502::N);
     if (opcodeTable[opcode].address_mode == &Cpu6502::ACC) a = temp & 0x00FF;
     else write(addr_abs, temp & 0x00FF);
     return 0;
@@ -179,7 +192,7 @@ uint8_t Cpu6502::ASL() {
 
 // Branch on Carry Clear
 uint8_t Cpu6502::BCC() {
-    if (getFlag(C) == 0) {
+    if (getFlag(Flags6502::C) == 0) {
         cycles++;
         addr_abs = pc + addr_rel;
         if ((addr_abs & 0xFF00) != (pc & 0xFF00)) cycles++;
@@ -191,7 +204,7 @@ uint8_t Cpu6502::BCC() {
 
 // Branch on Carry Set
 uint8_t Cpu6502::BCS() {
-    if (getFlag(C) == 1) {
+    if (getFlag(Flags6502::C) == 1) {
         cycles++;
         addr_abs = pc + addr_rel;
 
@@ -204,7 +217,7 @@ uint8_t Cpu6502::BCS() {
 
 // Branch on Result Zero
 uint8_t Cpu6502::BEQ() {
-    if (getFlag(Z) == 1) {
+    if (getFlag(Flags6502::Z) == 1) {
         cycles++;
         addr_abs = pc + addr_rel;
 
@@ -219,15 +232,15 @@ uint8_t Cpu6502::BEQ() {
 uint8_t Cpu6502::BIT() {
     fetch();
     uint16_t temp = a & operand;
-    (temp & 0x00FF) == 0x00 ? setFlag(Z) : clearFlag(Z);
-    operand & (1 << 7) ? setFlag(N) : clearFlag(N);
-    operand & (1 << 6) ? setFlag(V) : clearFlag(V);
+    (temp & 0x00FF) == 0x00 ? setFlag(Flags6502::Z) : clearFlag(Flags6502::Z);
+    operand & (1 << 7) ? setFlag(Flags6502::N) : clearFlag(Flags6502::N);
+    operand & (1 << 6) ? setFlag(Flags6502::V) : clearFlag(Flags6502::V);
     return 0;
 }
 
 // Branch on Result Minus
 uint8_t Cpu6502::BMI() {
-    if (getFlag(N) == 1) {
+    if (getFlag(Flags6502::N) == 1) {
         cycles++;
         addr_abs = pc + addr_rel;
 
@@ -240,7 +253,7 @@ uint8_t Cpu6502::BMI() {
 
 // Branch on Result Not Zero
 uint8_t Cpu6502::BNE() {
-    if (getFlag(Z) == 0) {
+    if (getFlag(Flags6502::Z) == 0) {
         cycles++;
         addr_abs = pc + addr_rel;
 
@@ -253,7 +266,7 @@ uint8_t Cpu6502::BNE() {
 
 // Branch on Result Plus
 uint8_t Cpu6502::BPL() {
-    if (getFlag(N) == 0) {
+    if (getFlag(Flags6502::N) == 0) {
         cycles++;
         addr_abs = pc + addr_rel;
 
@@ -268,16 +281,16 @@ uint8_t Cpu6502::BPL() {
 uint8_t Cpu6502::BRK() {
     pc++;
 
-    setFlag(I);
+    setFlag(Flags6502::I);
     write(0x0100 + sp, (pc >> 8) & 0x00FF);
     sp--;
     write(0x0100 + sp, pc & 0x00FF);
     sp--;
 
-    setFlag(B);
+    setFlag(Flags6502::B);
     write(0x0100 + sp, sr);
     sp--;
-    clearFlag(B);
+    clearFlag(Flags6502::B);
 
     pc = (uint16_t)read(0xFFFE) | ((uint16_t)read(0xFFFF) << 8);
     return 0;
@@ -285,7 +298,7 @@ uint8_t Cpu6502::BRK() {
 
 // Branch on Overflow Clear
 uint8_t Cpu6502::BVC() {
-    if (getFlag(V) == 0) {
+    if (getFlag(Flags6502::V) == 0) {
         cycles++;
         addr_abs = pc + addr_rel;
 
@@ -298,7 +311,7 @@ uint8_t Cpu6502::BVC() {
 
 // Brach on Overflow Set
 uint8_t Cpu6502::BVS() {
-    if (getFlag(V) == 1) {
+    if (getFlag(Flags6502::V) == 1) {
         cycles++;
         addr_abs = pc + addr_rel;
 
@@ -311,25 +324,25 @@ uint8_t Cpu6502::BVS() {
 
 // Clear Carry Flag
 uint8_t Cpu6502::CLC() {
-    clearFlag(C);
+    clearFlag(Flags6502::C);
     return 0;
 }
 
 // Clear Decimal Mode
 uint8_t Cpu6502::CLD() {
-    clearFlag(D);
+    clearFlag(Flags6502::D);
     return 0;
 }
 
 // Clear Interrupt Disable Bit
 uint8_t Cpu6502::CLI() {
-    clearFlag(I);
+    clearFlag(Flags6502::I);
     return 0;
 }
 
 // Clear Overflow Flag
 uint8_t Cpu6502::CLV() {
-    clearFlag(V);
+    clearFlag(Flags6502::V);
     return 0;
 }
 
@@ -337,9 +350,9 @@ uint8_t Cpu6502::CLV() {
 uint8_t Cpu6502::CMP() {
     fetch();
     uint16_t temp = (uint16_t)a - (uint16_t)operand;
-    (a >= operand) ? setFlag(C) : clearFlag(C);
-    (temp & 0x00FF) == 0 ? setFlag(Z) : clearFlag(Z);
-    (temp & 0x0080) ? setFlag(N) : clearFlag(N);
+    (a >= operand) ? setFlag(Flags6502::C) : clearFlag(Flags6502::C);
+    (temp & 0x00FF) == 0 ? setFlag(Flags6502::Z) : clearFlag(Flags6502::Z);
+    (temp & 0x0080) ? setFlag(Flags6502::N) : clearFlag(Flags6502::N);
     return 1;
 }
 
@@ -347,9 +360,9 @@ uint8_t Cpu6502::CMP() {
 uint8_t Cpu6502::CPX() {
     fetch();
     uint16_t temp = (uint16_t)x - (uint16_t)operand;
-    (x >= operand) ? setFlag(C) : clearFlag(C);
-    (temp & 0x00FF) == 0 ? setFlag(Z) : clearFlag(Z);
-    (temp & 0x0080) ? setFlag(N) : clearFlag(N);
+    (x >= operand) ? setFlag(Flags6502::C) : clearFlag(Flags6502::C);
+    (temp & 0x00FF) == 0 ? setFlag(Flags6502::Z) : clearFlag(Flags6502::Z);
+    (temp & 0x0080) ? setFlag(Flags6502::N) : clearFlag(Flags6502::N);
     return 0;
 }
 
@@ -357,9 +370,9 @@ uint8_t Cpu6502::CPX() {
 uint8_t Cpu6502::CPY() {
     fetch();
     uint16_t temp = (uint16_t)y - (uint16_t)operand;
-    (y >= operand) ? setFlag(C) : clearFlag(C);
-    (temp & 0x00FF) == 0 ? setFlag(Z) : clearFlag(Z);
-    (temp & 0x0080) ? setFlag(N) : clearFlag(N);
+    (y >= operand) ? setFlag(Flags6502::C) : clearFlag(Flags6502::C);
+    (temp & 0x00FF) == 0 ? setFlag(Flags6502::Z) : clearFlag(Flags6502::Z);
+    (temp & 0x0080) ? setFlag(Flags6502::N) : clearFlag(Flags6502::N);
     return 0;
 }
 
@@ -368,24 +381,24 @@ uint8_t Cpu6502::DEC() {
     fetch();
     uint16_t temp = operand - 1;
     write(addr_abs, temp & 0x00FF);
-    (temp & 0x00FF) == 0 ? setFlag(Z) : clearFlag(Z);
-    (temp & 0x0080) ? setFlag(N) : clearFlag(N);
+    (temp & 0x00FF) == 0 ? setFlag(Flags6502::Z) : clearFlag(Flags6502::Z);
+    (temp & 0x0080) ? setFlag(Flags6502::N) : clearFlag(Flags6502::N);
     return 0;
 }
 
 // Decrement Index X
 uint8_t Cpu6502::DEX() {
     x--;
-    x == 0 ? setFlag(Z) : clearFlag(Z);
-    (x & 0x0080) ? setFlag(N) : clearFlag(N);
+    x == 0 ? setFlag(Flags6502::Z) : clearFlag(Flags6502::Z);
+    (x & 0x0080) ? setFlag(Flags6502::N) : clearFlag(Flags6502::N);
     return 0;
 }
 
 // Decrement Index Y
 uint8_t Cpu6502::DEY() {
     y--;
-    y == 0 ? setFlag(Z) : clearFlag(Z);
-    (y & 0x0080) ? setFlag(N) : clearFlag(N);
+    y == 0 ? setFlag(Flags6502::Z) : clearFlag(Flags6502::Z);
+    (y & 0x0080) ? setFlag(Flags6502::N) : clearFlag(Flags6502::N);
     return 0;
 }
 
@@ -393,8 +406,8 @@ uint8_t Cpu6502::DEY() {
 uint8_t Cpu6502::EOR() {
     fetch();
     a = a ^ operand;
-    a == 0 ? setFlag(Z) : clearFlag(Z);
-    (a & 0x0080) ? setFlag(N) : clearFlag(N);
+    a == 0 ? setFlag(Flags6502::Z) : clearFlag(Flags6502::Z);
+    (a & 0x0080) ? setFlag(Flags6502::N) : clearFlag(Flags6502::N);
     return 1;
 }
 
@@ -403,24 +416,24 @@ uint8_t Cpu6502::INC() {
     fetch();
     uint16_t temp = operand + 1;
     write(addr_abs, temp & 0x00FF);
-    (temp & 0x00FF) == 0 ? setFlag(Z) : clearFlag(Z);
-    (temp & 0x0080) ? setFlag(N) : clearFlag(N);
+    (temp & 0x00FF) == 0 ? setFlag(Flags6502::Z) : clearFlag(Flags6502::Z);
+    (temp & 0x0080) ? setFlag(Flags6502::N) : clearFlag(Flags6502::N);
     return 0;
 }
 
 // Increment Index X
 uint8_t Cpu6502::INX() {
     x++;
-    x == 0 ? setFlag(Z) : clearFlag(Z);
-    (x & 0x0080) ? setFlag(N) : clearFlag(N);
+    x == 0 ? setFlag(Flags6502::Z) : clearFlag(Flags6502::Z);
+    (x & 0x0080) ? setFlag(Flags6502::N) : clearFlag(Flags6502::N);
     return 0;
 }
 
 // Increment Index Y
 uint8_t Cpu6502::INY() {
     y++;
-    y == 0 ? setFlag(Z) : clearFlag(Z);
-    (y & 0x0080) ? setFlag(N) : clearFlag(N);
+    y == 0 ? setFlag(Flags6502::Z) : clearFlag(Flags6502::Z);
+    (y & 0x0080) ? setFlag(Flags6502::N) : clearFlag(Flags6502::N);
     return 0;
 }
 
@@ -447,8 +460,8 @@ uint8_t Cpu6502::JSR() {
 uint8_t Cpu6502::LDA() {
     fetch();
     a = operand;
-    a == 0 ? setFlag(Z) : clearFlag(Z);
-    (a & 0x0080) ? setFlag(N) : clearFlag(N);
+    a == 0 ? setFlag(Flags6502::Z) : clearFlag(Flags6502::Z);
+    (a & 0x0080) ? setFlag(Flags6502::N) : clearFlag(Flags6502::N);
     return 1;
 }
 
@@ -456,8 +469,8 @@ uint8_t Cpu6502::LDA() {
 uint8_t Cpu6502::LDX() {
     fetch();
     x = operand;
-    x == 0 ? setFlag(Z) : clearFlag(Z);
-    (x & 0x0080) ? setFlag(N) : clearFlag(N);
+    x == 0 ? setFlag(Flags6502::Z) : clearFlag(Flags6502::Z);
+    (x & 0x0080) ? setFlag(Flags6502::N) : clearFlag(Flags6502::N);
     return 1;
 }
 
@@ -465,18 +478,18 @@ uint8_t Cpu6502::LDX() {
 uint8_t Cpu6502::LDY() {
     fetch();
     y = operand;
-    y == 0 ? setFlag(Z) : clearFlag(Z);
-    (y & 0x0080) ? setFlag(N) : clearFlag(N);
+    y == 0 ? setFlag(Flags6502::Z) : clearFlag(Flags6502::Z);
+    (y & 0x0080) ? setFlag(Flags6502::N) : clearFlag(Flags6502::N);
     return 1;
 }
 
 // Shift One Bit Right (Memory or Accumulator)
 uint8_t Cpu6502::LSR() {
     fetch();
-    (operand & 0x0001) ? setFlag(C) : clearFlag(C);
+    (operand & 0x0001) ? setFlag(Flags6502::C) : clearFlag(Flags6502::C);
     uint16_t temp = operand >> 1;
-    (temp & 0x00FF) == 0 ? setFlag(Z) : clearFlag(Z);
-    (temp & 0x0080) ? setFlag(N) : clearFlag(N);
+    (temp & 0x00FF) == 0 ? setFlag(Flags6502::Z) : clearFlag(Flags6502::Z);
+    (temp & 0x0080) ? setFlag(Flags6502::N) : clearFlag(Flags6502::N);
     if (opcodeTable[opcode].address_mode == &Cpu6502::IMP) a = temp & 0x00FF;
     else write(addr_abs, temp & 0x00FF);
     return 0;
@@ -492,8 +505,8 @@ uint8_t Cpu6502::NOP() {
 uint8_t Cpu6502::ORA() {
     fetch();
     a = a | operand;
-    a == 0 ? setFlag(Z) : clearFlag(Z);
-    (a & 0x0080) ? setFlag(N) : clearFlag(N);
+    a == 0 ? setFlag(Flags6502::Z) : clearFlag(Flags6502::Z);
+    (a & 0x0080) ? setFlag(Flags6502::N) : clearFlag(Flags6502::N);
     return 1;
 }
 
@@ -506,9 +519,9 @@ uint8_t Cpu6502::PHA() {
 
 // Push Processor Status on Stack
 uint8_t Cpu6502::PHP() {
-    write(0x0100 + sp, sr | B | U);
-    clearFlag(B);
-    clearFlag(U);
+    write(0x0100 + sp, (sr | (uint8_t)Flags6502::B | (uint8_t)Flags6502::U));
+    clearFlag(Flags6502::B);
+    clearFlag(Flags6502::U);
     sp--;
     return 0;
 }
@@ -517,8 +530,8 @@ uint8_t Cpu6502::PHP() {
 uint8_t Cpu6502::PLA() {
     sp++;
     a = read(0x0100 + sp);
-    a == 0 ? setFlag(Z) : clearFlag(Z);
-    (a & 0x0080) ? setFlag(N) : clearFlag(N);
+    a == 0 ? setFlag(Flags6502::Z) : clearFlag(Flags6502::Z);
+    (a & 0x0080) ? setFlag(Flags6502::N) : clearFlag(Flags6502::N);
     return 0;
 }
 
@@ -526,17 +539,17 @@ uint8_t Cpu6502::PLA() {
 uint8_t Cpu6502::PLP() {
     sp++;
     sr = read(0x0100 + sp);
-    setFlag(U);
+    setFlag(Flags6502::U);
     return 0;
 }
 
 // Rotate One Bit Left (Memory or Accumulator)
 uint8_t Cpu6502::ROL() {
     fetch();
-    uint16_t temp = (uint16_t)(operand << 1) | getFlag(C);
-    (temp & 0xFF00) ? setFlag(C) : clearFlag(C);
-    (temp & 0x00FF) == 0 ? setFlag(Z) : clearFlag(Z);
-    (temp & 0x0080) ? setFlag(N) : clearFlag(N);
+    uint16_t temp = (uint16_t)(operand << 1) | getFlag(Flags6502::C);
+    (temp & 0xFF00) ? setFlag(Flags6502::C) : clearFlag(Flags6502::C);
+    (temp & 0x00FF) == 0 ? setFlag(Flags6502::Z) : clearFlag(Flags6502::Z);
+    (temp & 0x0080) ? setFlag(Flags6502::N) : clearFlag(Flags6502::N);
     if (opcodeTable[opcode].address_mode == &Cpu6502::IMP) a = temp & 0x00FF;
     else write(addr_abs, temp & 0x00FF);
     return 0;
@@ -545,10 +558,10 @@ uint8_t Cpu6502::ROL() {
 // Rotate One Bit Right (Memory or Accumulator)
 uint8_t Cpu6502::ROR() {
     fetch();
-    uint16_t temp = (uint16_t)(getFlag(C) << 7) | (operand >> 1);
-    (operand & 0x01) ? setFlag(C) : clearFlag(C);
-    (temp & 0x00FF) == 0 ? setFlag(Z) : clearFlag(Z);
-    (temp & 0x0080) ? setFlag(N) : clearFlag(N);
+    uint16_t temp = (uint16_t)(getFlag(Flags6502::C) << 7) | (operand >> 1);
+    (operand & 0x01) ? setFlag(Flags6502::C) : clearFlag(Flags6502::C);
+    (temp & 0x00FF) == 0 ? setFlag(Flags6502::Z) : clearFlag(Flags6502::Z);
+    (temp & 0x0080) ? setFlag(Flags6502::N) : clearFlag(Flags6502::N);
     if (opcodeTable[opcode].address_mode == &Cpu6502::IMP) a = temp & 0x00FF;
     else write(addr_abs, temp & 0x00FF);
     return 0;
@@ -558,8 +571,8 @@ uint8_t Cpu6502::ROR() {
 uint8_t Cpu6502::RTI() {
     sp++;
     sr = read(0x0100 + sp);
-    sr &= ~B;
-    sr &= ~U;
+    sr &= ~(uint8_t)Flags6502::B;
+    sr &= ~(uint8_t)Flags6502::U;
 
     sp++;
     pc = (uint16_t)read(0x0100 + sp);
@@ -583,33 +596,33 @@ uint8_t Cpu6502::RTS() {
 uint8_t Cpu6502::SBC() {
     fetch();
     uint16_t temp =
-        (uint16_t)a + (uint16_t)operand ^ 0x00FF + (uint16_t)getFlag(C);
-    (temp & 0xFF00) ? setFlag(C) : clearFlag(C);
-    (temp & 0x00FF) == 0 ? setFlag(Z) : clearFlag(Z);
+        (uint16_t)a + (uint16_t)operand ^ 0x00FF + (uint16_t)getFlag(Flags6502::C);
+    (temp & 0xFF00) ? setFlag(Flags6502::C) : clearFlag(Flags6502::C);
+    (temp & 0x00FF) == 0 ? setFlag(Flags6502::Z) : clearFlag(Flags6502::Z);
     ((~((uint16_t)a ^ (uint16_t)operand) & ((uint16_t)a ^ (uint16_t)temp)) &
      0x0080)
-        ? setFlag(V)
-        : clearFlag(V);
-    (temp & 0x80) ? setFlag(N) : clearFlag(N);
+        ? setFlag(Flags6502::V)
+        : clearFlag(Flags6502::V);
+    (temp & 0x80) ? setFlag(Flags6502::N) : clearFlag(Flags6502::N);
     a = temp & 0x00FF;
     return 1;
 }
 
 // Set Carry Flag
 uint8_t Cpu6502::SEC() {
-    setFlag(C);
+    setFlag(Flags6502::C);
     return 0;
 }
 
 // Set Decimal Flag
 uint8_t Cpu6502::SED() {
-    setFlag(D);
+    setFlag(Flags6502::D);
     return 0;
 }
 
 // Set Interrupt Disable Status
 uint8_t Cpu6502::SEI() {
-    setFlag(I);
+    setFlag(Flags6502::I);
     return 0;
 }
 
@@ -634,32 +647,32 @@ uint8_t Cpu6502::STY() {
 // Transfer Accumulator to Index X
 uint8_t Cpu6502::TAX() {
     x = a;
-    x == 0x00 ? setFlag(Z) : clearFlag(Z);
-    x & 0x80 ? setFlag(N) : clearFlag(N);
+    x == 0x00 ? setFlag(Flags6502::Z) : clearFlag(Flags6502::Z);
+    x & 0x80 ? setFlag(Flags6502::N) : clearFlag(Flags6502::N);
     return 0;
 }
 
 // Transfer Accumulator to Index Y
 uint8_t Cpu6502::TAY() {
     y = a;
-    y == 0x00 ? setFlag(Z) : clearFlag(Z);
-    y & 0x80 ? setFlag(N) : clearFlag(N);
+    y == 0x00 ? setFlag(Flags6502::Z) : clearFlag(Flags6502::Z);
+    y & 0x80 ? setFlag(Flags6502::N) : clearFlag(Flags6502::N);
     return 0;
 }
 
 // Transfer Stack Pointer to Index X
 uint8_t Cpu6502::TSX() {
     x = sp;
-    x == 0x00 ? setFlag(Z) : clearFlag(Z);
-    x & 0x80 ? setFlag(N) : clearFlag(N);
+    x == 0x00 ? setFlag(Flags6502::Z) : clearFlag(Flags6502::Z);
+    x & 0x80 ? setFlag(Flags6502::N) : clearFlag(Flags6502::N);
     return 0;
 }
 
 // Transfer Index X to Accumulator
 uint8_t Cpu6502::TXA() {
     a = x;
-    a == 0x00 ? setFlag(Z) : clearFlag(Z);
-    a == 0x80 ? setFlag(N) : clearFlag(N);
+    a == 0x00 ? setFlag(Flags6502::Z) : clearFlag(Flags6502::Z);
+    a == 0x80 ? setFlag(Flags6502::N) : clearFlag(Flags6502::N);
     return 0;
 }
 
@@ -672,8 +685,8 @@ uint8_t Cpu6502::TXS() {
 // Transfer Index Y to Accumulator
 uint8_t Cpu6502::TYA() {
     a = y;
-    a == 0x00 ? setFlag(Z) : clearFlag(Z);
-    a == 0x80 ? setFlag(N) : clearFlag(N);
+    a == 0x00 ? setFlag(Flags6502::Z) : clearFlag(Flags6502::Z);
+    a == 0x80 ? setFlag(Flags6502::N) : clearFlag(Flags6502::N);
     return 0;
 }
 

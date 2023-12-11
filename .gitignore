@@ -1,6 +1,8 @@
 # Created by https://www.toptal.com/developers/gitignore/api/cmake,c++,executable
 # Edit at https://www.toptal.com/developers/gitignore?templates=cmake,c++,executable
 
+nestest.nes
+
 ### C++ ###
 # Prerequisites
 *.d

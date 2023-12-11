@@ -1,5 +1,6 @@
 #include "bus.h"
 #include "cpu.h"
+#include <cstdint>
 #include <memory>
 
 Cpu6502::Cpu6502() {
@@ -48,11 +49,11 @@ Cpu6502::Cpu6502() {
 
 void Cpu6502::connectBus(std::shared_ptr<Bus_16bit> b) { bus = b; }
 
-uint8_t Cpu6502::getFlag(Cpu6502::Flags6502 f) { return sr & f; }
+uint8_t Cpu6502::getFlag(Cpu6502::Flags6502 f) { return sr & (uint8_t)f; }
 
-void Cpu6502::setFlag(Cpu6502::Flags6502 f) { sr |= f; }
+void Cpu6502::setFlag(Cpu6502::Flags6502 f) { sr |= (uint8_t)f; }
 
-void Cpu6502::clearFlag(Cpu6502::Flags6502 f) { sr &= ~f; }
+void Cpu6502::clearFlag(Cpu6502::Flags6502 f) { sr &= ~(uint8_t)f; }
 
 uint8_t Cpu6502::read(uint16_t addr) { return bus->read(addr); }
 
@@ -73,7 +74,7 @@ void Cpu6502::reset() {
     sp = 0xFD;
     pc = (addr_hi << 8) | addr_lo;
 
-    setFlag(U);
+    setFlag(Flags6502::U);
 
     cycles = 8;
     opcode = 0x00;
@@ -85,7 +86,7 @@ void Cpu6502::reset() {
 }
 
 void Cpu6502::irq() {
-    if (!getFlag(I)) { // Interrupt disable bit check
+    if (!getFlag(Flags6502::I)) { // Interrupt disable bit check
 
         write(0x100 + sp, (pc >> 8) & 0x00FF);
         sp--;
@@ -93,9 +94,9 @@ void Cpu6502::irq() {
         sp--;
 
         // push status register to stack
-        clearFlag(B);
-        setFlag(U);
-        setFlag(I);
+        clearFlag(Flags6502::B);
+        setFlag(Flags6502::U);
+        setFlag(Flags6502::I);
         write(0x100 + sp, sr);
         sp--;
 
@@ -116,9 +117,9 @@ void Cpu6502::nmi() {
     sp--;
 
     // push status register to stack
-    clearFlag(B);
-    setFlag(U);
-    setFlag(I);
+    clearFlag(Flags6502::B);
+    setFlag(Flags6502::U);
+    setFlag(Flags6502::I);
     write(0x100 + sp, sr);
     sp--;
 
@@ -147,7 +148,7 @@ void Cpu6502::clock() {
         // Read instruction byte
         opcode = read(pc);
         // Set ununsed flag
-        setFlag(U);
+        setFlag(Flags6502::U);
 
         cycles = opcodeTable[opcode].cycles;
         uint8_t additional_cycles_addr =
